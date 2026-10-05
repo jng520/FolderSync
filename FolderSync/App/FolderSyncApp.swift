@@ -1,10 +1,3 @@
-//
-//  FolderSyncApp.swift
-//  FolderSync
-//
-//  Created by John Ng on 10/5/26.
-//
-
 import SwiftUI
 
 @main
@@ -13,5 +6,6 @@ struct FolderSyncApp: App {
         WindowGroup {
             ContentView()
         }
+        .defaultSize(width: 1040, height: 720)
     }
 }
