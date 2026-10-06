@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct RowFramesKey: PreferenceKey {
-    static var defaultValue: [String: CGRect] = [:]
+    static let defaultValue: [String: CGRect] = [:]
     static func reduce(value: inout [String: CGRect], nextValue: () -> [String: CGRect]) {
         value.merge(nextValue(), uniquingKeysWith: { $1 })
     }
@@ -37,12 +37,16 @@ struct FileTreeView: View {
 
     private func row(_ node: FileNode) -> some View {
         HStack(spacing: 6) {
-            Toggle("", isOn: Binding(
-                get: { node.isChecked },
-                set: { _ in onToggleCheck(node.relativePath) }
-            ))
-            .toggleStyle(.checkbox)
-            .labelsHidden()
+            Button {
+                onToggleCheck(node.relativePath)
+            } label: {
+                Image(systemName: node.isChecked ? "checkmark.square.fill" : "square")
+                    .font(.body)
+                    .frame(width: 22, height: 22)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(node.isChecked ? "Unselect \(node.name)" : "Select \(node.name)")
 
             if node.isDirectory {
                 Button {
@@ -60,10 +64,11 @@ struct FileTreeView: View {
                 .foregroundStyle(node.isDirectory ? .secondary : .tertiary)
             Text(node.name)
                 .lineLimit(1)
+                .textSelection(.enabled)
             Spacer(minLength: 0)
         }
         .padding(.leading, CGFloat(depth) * 16)
-        .padding(.vertical, 1)
+        .padding(.vertical, 2)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(node.relativePath == selectedPath ? Color.accentColor.opacity(0.18) : Color.clear)
         .contentShape(Rectangle())

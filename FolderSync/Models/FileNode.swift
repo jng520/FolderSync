@@ -3,6 +3,9 @@ import Foundation
 struct FileNode: Identifiable, Hashable, Sendable {
     var id: String { relativePath.isEmpty ? "/" : relativePath }
     var name: String
+    /// Exact URL returned by Foundation/File Provider. Keep this instead of rebuilding
+    /// the URL later from path strings.
+    var url: URL
     /// Path under the side's root, `/`-separated. Empty string is the root itself and is not shown as a row.
     var relativePath: String
     var isDirectory: Bool
@@ -13,7 +16,7 @@ struct FileNode: Identifiable, Hashable, Sendable {
     var isLoaded: Bool { children != nil }
 }
 
-enum BrowserSide: String, Sendable {
+enum BrowserSide: String, Hashable, Sendable {
     case left
     case right
 

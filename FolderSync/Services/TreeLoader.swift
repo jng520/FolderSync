@@ -2,11 +2,25 @@ import Foundation
 
 enum TreeLoader {
     static func loadChildren(of directory: URL, root: URL, fileManager: FileManager = .default) throws -> [FileNode] {
-        let urls = try fileManager.contentsOfDirectory(
+        let keys: [URLResourceKey] = [.isDirectoryKey, .isHiddenKey, .isSymbolicLinkKey]
+        var urls = try fileManager.contentsOfDirectory(
             at: directory,
-            includingPropertiesForKeys: [.isDirectoryKey, .isHiddenKey, .isSymbolicLinkKey],
+            includingPropertiesForKeys: keys,
             options: [.skipsPackageDescendants]
         )
+
+        #if os(iOS)
+        // Some File Provider folders can report an empty first enumeration immediately
+        // after selection/restoration. Retry once before treating the folder as empty.
+        if urls.isEmpty {
+            urls = try fileManager.contentsOfDirectory(
+                at: directory,
+                includingPropertiesForKeys: keys,
+                options: [.skipsPackageDescendants]
+            )
+        }
+        #endif
+
         let rootPath = root.standardizedFileURL.path
         let prefix = rootPath.hasSuffix("/") ? rootPath : rootPath + "/"
 
@@ -19,6 +33,7 @@ enum TreeLoader {
             let relative = full.hasPrefix(prefix) ? String(full.dropFirst(prefix.count)) : url.lastPathComponent
             return FileNode(
                 name: url.lastPathComponent,
+                url: url,
                 relativePath: relative,
                 isDirectory: isDirectory,
                 children: isDirectory ? nil : []

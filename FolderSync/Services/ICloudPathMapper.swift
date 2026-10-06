@@ -4,12 +4,11 @@ enum ICloudPathMapper {
     /// Standard iCloud Drive folder inside the home directory.
     static let cloudDocsMarker = "Library/Mobile Documents/com~apple~CloudDocs"
 
-    /// Resolve the iCloud Drive root for the current user.
-    /// Prefers the ubiquity container when the system can see it, then falls back to the well-known path.
+    /// Resolve the iCloud Drive root visible to this app.
     static func iCloudDriveRoot(fileManager: FileManager = .default) -> URL? {
+        #if os(macOS)
         if let container = fileManager.url(forUbiquityContainerIdentifier: nil) {
-            // `forUbiquityContainerIdentifier: nil` is the app's own container when entitled.
-            // The Drive root the Finder shows is the sibling CloudDocs folder, so prefer that when present.
+            // On macOS, prefer Finder's iCloud Drive root when it exists.
             let cloudDocs = fileManager
                 .homeDirectoryForCurrentUser
                 .appending(path: cloudDocsMarker, directoryHint: .isDirectory)
@@ -18,6 +17,7 @@ enum ICloudPathMapper {
             }
             return container.standardizedFileURL
         }
+
         let cloudDocs = fileManager
             .homeDirectoryForCurrentUser
             .appending(path: cloudDocsMarker, directoryHint: .isDirectory)
@@ -25,6 +25,20 @@ enum ICloudPathMapper {
             return cloudDocs.standardizedFileURL
         }
         return nil
+        #else
+        // iOS has no macOS-style ~/Library/Mobile Documents path. The app's
+        // entitled ubiquity container is the only home-relative iCloud root.
+        return fileManager.url(forUbiquityContainerIdentifier: nil)?.standardizedFileURL
+        #endif
+    }
+
+    private static func platformHomeDirectory(fileManager: FileManager) -> URL {
+        #if os(macOS)
+        return fileManager.homeDirectoryForCurrentUser.standardizedFileURL
+        #else
+        // On iOS this is the app sandbox home, not a system-wide user home.
+        return URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true).standardizedFileURL
+        #endif
     }
 
     /// Map a selected file or folder onto the home directory, preserving the path under iCloud Drive.
@@ -38,7 +52,7 @@ enum ICloudPathMapper {
         fileManager: FileManager = .default
     ) -> MappedPath {
         let source = source.standardizedFileURL
-        let home = (home ?? fileManager.homeDirectoryForCurrentUser).standardizedFileURL
+        let home = (home ?? platformHomeDirectory(fileManager: fileManager)).standardizedFileURL
         let root = (explicitRoot ?? iCloudDriveRoot(fileManager: fileManager))?.standardizedFileURL
 
         if let root, isDescendant(source, of: root) {
